@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Document</title>
+    <title>Rock Paper Scissors Lizard Spock</title>
 
     <link rel="stylesheet" href="./assets/css/reset.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
@@ -14,7 +14,31 @@
 </head>
 <body>
 
+<div class="container">
+	<div class="row">
+		<div class="col-xs-9 gameplay">
+			<button id="rock">Rock</button>
+			<button id="paper">Paper</button>
+			<button id="scissors">Scissors</button>
 
+
+			<div class="combatDisplay"></div>
+		</div>
+	</div>
+	<div class="row">
+		<div class="chat col-xs-12">
+			<div class="chatDisplay"></div>
+
+			<div class="row">
+				<input type="text" class="chatInput col-xs-10" autofocus>
+				<button id="chatButton col-xs-2">Enter</button>
+			</div>
+		</div>
+	</div>
+	<div class="row">
+		<span>Viewers: </span><span class="viewers"></span>
+	</div>
+</div>
 
 
 <script src="./assets/js/logic.js"></script>	

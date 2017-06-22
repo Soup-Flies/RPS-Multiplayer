@@ -1,0 +1,13 @@
+.chat {
+	height: 165px;
+	border: black 2px solid;
+}
+
+.gameplay {
+	height: 400px;
+	border: black 2px solid;
+}
+
+.chatDisplay {
+	height: 125px;
+}
