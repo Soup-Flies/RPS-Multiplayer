@@ -21,9 +21,23 @@
 			<button id="paper">Paper</button>
 			<button id="scissors">Scissors</button>
 
-
 			<div class="combatDisplay"></div>
-		</div>
+	  </div>
+    <div class="col-xs-3 controls">
+      <div class="row">
+        <div class="nameDisplay"></div>
+      </div>
+    <div class="row">
+      <input type="text" class="col-xs-6" id="nameInput">
+      <button id="nameChange">Enter</button>
+    </div>
+    <div class="row">
+  		<span class="col-xs-12 viewers"></span>
+  	</div>
+      <div class="row">
+        <span class="col-xs-12 queueDisplay"></span>
+    	</div>
+    </div>
 	</div>
 	<div class="row">
 		<div class="chat col-xs-12">
@@ -31,16 +45,13 @@
 
 			<div class="row">
 				<input type="text" class="chatInput col-xs-10" autofocus>
-				<button id="chatButton col-xs-2">Enter</button>
+				<button id="chatButton" class="col-xs-2">Enter</button>
 			</div>
 		</div>
-	</div>
-	<div class="row">
-		<span>Viewers: </span><span class="viewers"></span>
 	</div>
 </div>
 
 
-<script src="./assets/js/logic.js"></script>	
+<script src="./assets/js/logic.js"></script>
 </body>
 </html>

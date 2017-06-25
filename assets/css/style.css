@@ -10,4 +10,5 @@
 
 .chatDisplay {
 	height: 125px;
+	overflow: scroll;
 }
