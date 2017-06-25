@@ -58,7 +58,7 @@ database.ref().on("value", function(snapshot) {
     chatDisplay();
   }
   if (snapshot.child("playerQueue").exists()) {
-    queue = snapshot.val().playerQueue;
+    // queue = snapshot.val().playerQueue;
   }
   playerQueue();
 }, function(errorObject) {
@@ -67,25 +67,25 @@ database.ref().on("value", function(snapshot) {
 
 function playerQueue() {
   //check if player is in queue
-  if (Array.isArray(queue)) {
-    if (queue.indexOf(sessionUser.key) == -1) {
-      queue.push(sessionUser.key);
-    }
-    $.each(currentData.val().playerQueue, function(index, value) {
-      if (currentData.val().connections[value] === undefined) {
-        queue = queue.splice(queue.indexOf(index), 1);
-      }
-    })
+  // if (Array.isArray(queue)) {
+  //   if (queue.indexOf(sessionUser.key) == -1) {
+  //     queue.push(sessionUser.key);
+  //   }
+  //   $.each(currentData.val().playerQueue, function(index, value) {
+  //     if (currentData.val().connections[value] === undefined) {
+  //       queue = queue.splice(queue.indexOf(index), 1);
+  //     }
+  //   })
     database.ref("playerQueue").set(queue);
-  } else {
-    queue = database.ref("playerQueue").key();
-  }
-  var currentPos = queue.indexOf(sessionUser.key) + 1;
-  if (queue.length == 1) {
-    $(".queueDisplay").html("You are all alone...");
-  } else {
-    $(".queueDisplay").html("Queue position: " + currentPos + " of " + queue.length);
-  }
+  // } else {
+  //   // queue = database.ref("playerQueue").key();
+  // }
+  // var currentPos = queue.indexOf(sessionUser.key) + 1;
+  // if (queue.length == 1) {
+  //   $(".queueDisplay").html("You are all alone...");
+  // } else {
+  //   $(".queueDisplay").html("Queue position: " + currentPos + " of " + queue.length);
+  // }
 }
 
 function randomName() {
@@ -132,7 +132,6 @@ function chatUpdate() {
     playerChat.shift();
     chatDisplay();
   }
-
   database.ref("chat").set(playerChat);
   $(".chatInput").val("");
 };
@@ -144,7 +143,6 @@ function determineWinner(p1, p2) {
 function gameplay() {
   // if ()
 }
-
 
 function confirmAction(type) {
   var buttons = "";
