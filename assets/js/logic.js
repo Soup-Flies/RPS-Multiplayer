@@ -93,6 +93,8 @@ function randomName() {
     var rand2 = Math.floor(Math.random() * nameNouns.length);
     sessionUser.name = nameDescriptor[rand] + " " + nameNouns[rand2];
     $(".nameDisplay").html("Your name is: " + sessionUser.name);
+    playerChat.push(moment().format("hh:mm:ss a") + " " + sessionUser.name + " has joined the channel");
+    chatDisplay();
 }
 
 function chatStarter() {
@@ -116,19 +118,16 @@ function nameChange(newName) {
   var temp = sessionUser.name;
   sessionUser.name = newName;
   if (temp == "") {
-    playerChat.push("SYSTEM: New User: " + sessionUser.name);
+    playerChat.push(moment().format("hh:mm:ss a") + " " + "SYSTEM: New User: " + sessionUser.name);
   } else {
-    playerChat.push("SYSTEM: User: " + temp + " has changed their name to: " + sessionUser.name);
+    playerChat.push(moment().format("hh:mm:ss a") + " " + "SYSTEM: User: " + temp + " has changed their name to: " + sessionUser.name);
   }
   $("#nameInput").val("");
   chatDisplay();
 }
 
 function chatUpdate() {
-  // if (sessionUser.name == "") {
-  //   randomName();
-  // }
-  playerChat.push(sessionUser.name + ": " + $(".chatInput").val());
+  playerChat.push(sessionUser.name + " (" + moment().format("hh:mm:ss a") + "):<br>" + $(".chatInput").val());
   if (playerChat.length > 20) {
     playerChat.shift();
     chatDisplay();
