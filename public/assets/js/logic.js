@@ -13,23 +13,31 @@ function Player(key) {
   this.name = "",
   this.wins = 0,
   this.losses = 0,
-  this.ties = 0
+  this.ties = 0,
+  this.pos;
 }
 
 /* Comments Ideas
-Player Queue?
+Player Queue? DONE
 Play against computer -- solo
 buttons to choose solo play so others can play
 multiple "lobbies"
 */
-
   var database = firebase.database();
   var connectionsRef = database.ref("/connections");
   var connectedRef = database.ref(".info/connected");
+  var initialConnect = true;
   var currentData = {};
   var sessionUser = {};
   var queue = [];
   var playerChat = [];
+  var myGuess;
+  var theirGuess;
+  var testing = true;
+  var wins = 0;
+  var losses = 0;
+  var ties = 0;
+  var otherPlayer = {};
   var nameDescriptor = ["Damp", "Buttery", "Solid", "Skilled", "Apprentice", "Holy", "Sloppy", "Snotty", "Tired", "Stanky",
                           "Burnt", "Big", "Small", "Average", "Fast", "Slow", "Testy", "Angry", "Weeping", "Tough", "Wimpy", "Meak", "Hungry"];
 
@@ -43,6 +51,8 @@ connectedRef.on("value", function(snap) {
       randomName();
       con.onDisconnect().remove();
       database.ref("users/" + sessionUser.key).onDisconnect().remove();
+      database.ref("combatants/" + sessionUser.key).onDisconnect().remove();
+
   }
 });
 
@@ -53,39 +63,37 @@ connectionsRef.on("value", function(snap) {
 //database snapshot when value changes
 database.ref().on("value", function(snapshot) {
   currentData = snapshot;
+  scoreDisplay(currentData);
   if (snapshot.child("chat").exists()) {
     playerChat = snapshot.val().chat;
     chatDisplay();
   }
-  if (snapshot.child("playerQueue").exists()) {
-    // queue = snapshot.val().playerQueue;
+  if (snapshot.child("playerQueues").exists()) {
+    queue = snapshot.val().playerQueue;
   }
-  playerQueue();
+  playerQueue(snapshot);
 }, function(errorObject) {
   console.log("ERROR: ", errorObject.val());
 });
 
+
 function playerQueue() {
-  //check if player is in queue
-  // if (Array.isArray(queue)) {
-  //   if (queue.indexOf(sessionUser.key) == -1) {
-  //     queue.push(sessionUser.key);
-  //   }
-  //   $.each(currentData.val().playerQueue, function(index, value) {
-  //     if (currentData.val().connections[value] === undefined) {
-  //       queue = queue.splice(queue.indexOf(index), 1);
-  //     }
-  //   })
-    database.ref("playerQueue").set(queue);
-  // } else {
-  //   // queue = database.ref("playerQueue").key();
-  // }
-  // var currentPos = queue.indexOf(sessionUser.key) + 1;
-  // if (queue.length == 1) {
-  //   $(".queueDisplay").html("You are all alone...");
-  // } else {
-  //   $(".queueDisplay").html("Queue position: " + currentPos + " of " + queue.length);
-  // }
+  queue = [];
+  $.each(currentData.val().connections, function(index, value) {
+    queue.push(index);
+  })
+  database.ref("playersQueues").set(queue);
+
+  var currentPos = queue.indexOf(sessionUser.key) + 1;
+  sessionUser.pos = currentPos;
+  if (queue.length == 1) {
+    $(".queueDisplay").html("You are all alone...");
+  } else if (currentPos == 1 || currentPos == 2) {
+    $(".queueDisplay").html("Currently Playing!");
+  } else {
+    $(".queueDisplay").html("Queue position: " + currentPos + " of " + queue.length);
+  }
+  gameEngine();
 }
 
 function randomName() {
@@ -93,7 +101,6 @@ function randomName() {
     var rand2 = Math.floor(Math.random() * nameNouns.length);
     sessionUser.name = nameDescriptor[rand] + " " + nameNouns[rand2];
     $(".nameDisplay").html("Your name is: " + sessionUser.name);
-    playerChat.push(moment().format("hh:mm:ss a") + " " + sessionUser.name + " has joined the channel");
     chatDisplay();
 }
 
@@ -117,11 +124,7 @@ function chatDisplay() {
 function nameChange(newName) {
   var temp = sessionUser.name;
   sessionUser.name = newName;
-  if (temp == "") {
-    playerChat.push(moment().format("hh:mm:ss a") + " " + "SYSTEM: New User: " + sessionUser.name);
-  } else {
-    playerChat.push(moment().format("hh:mm:ss a") + " " + "SYSTEM: User: " + temp + " has changed their name to: " + sessionUser.name);
-  }
+  playerChat.push(moment().format("hh:mm:ss a") + " " + "SYSTEM: User: " + temp + " has changed their name to: " + sessionUser.name);
   $("#nameInput").val("");
   chatDisplay();
 }
@@ -136,12 +139,102 @@ function chatUpdate() {
   $(".chatInput").val("");
 };
 
-function determineWinner(p1, p2) {
+function buildScoreTable(player) {
+  if (player) {
+    var $newDiv = $("<div>");
+    $newDiv.append(sessionUser.name + "<br>");
+    $newDiv.append("Wins: " + sessionUser.wins + "<br>");
+    $newDiv.append("Losses: " + sessionUser.losses + "<br>");
+    $newDiv.append("Ties: " + sessionUser.ties);
+    console.log(sessionUser, "player");
+    console.log($newDiv);
+    return $newDiv;
+  } else {
+  var $newDiv = $("<div>");
+  $newDiv.append(otherPlayer.name + "<br>");
+  $newDiv.append("Wins: " + otherPlayer.wins + "<br>");
+  $newDiv.append("Losses: " + otherPlayer.losses + "<br>");
+  $newDiv.append("Ties: " + otherPlayer.ties);
+  console.log(otherPlayer , "player");
+  console.log($newDiv);
+  return $newDiv;
+}
+}
+
+function scoreDisplay(current) {
+  if (sessionUser.pos == 1) {
+    var playerOne = {};
+    playerOne[sessionUser.key] = sessionUser;
+    database.ref("combatants").update(playerOne);
+  } else if (sessionUser.pos == 2) {
+    var playerTwo = {};
+    playerTwo[sessionUser.key] = sessionUser;
+    database.ref("combatants").update(playerTwo);
+  }
+}
+
+    database.ref("combatants").on("value", function(snapshot) {
+      $.each(snapshot.val(), function(index, value) {
+        if (value.pos != sessionUser.pos) {
+          otherPlayer = value;
+        } else if (value.pos == 1 && sessionUser.pos == 1) {
+          $(".firstPlayer").html(buildScoreTable(true));
+          $(".secondPlayer").html(buildScoreTable(false));
+        } else if (value.pos && sessionUser.pos == 2)
+          $(".secondPlayer").html(buildScoreTable(true));
+          $(".firstPlayer").html(buildScoreTable(false));
+        })
+      })
+
+function drawField() {
+  $(".gameplay").html("Choose wisely your opponent looks pretty tough.<br>")
+$(".gameplay").append("<div class='btn btn-default guess' id='0'>Rock</div><div class='btn btn-default guess' id='1'>Paper</div><div class='btn btn-default guess' id='2'>Scissors</div>")
 
 }
 
-function gameplay() {
-  // if ()
+function gameEngine() {
+  if (sessionUser.pos == 1 || sessionUser.pos == 2) {
+    drawField();
+    startMatch(true);
+  } else {
+    startMatch(false);
+  }
+}
+
+function startMatch(playing) {
+  if (!playing) {
+    $(".gameplay").html("<p>Waiting on player choices!</p>");
+  } else {
+    database.ref("currentPlayers").once("value", function(snapshot) {
+      database.ref("currentPlayers/" + sessionUser.key).onDisconnect().remove();
+      if (snapshot.numChildren() == 2) {
+        $.each(snapshot.val(), function(index, value) {
+          if (index != sessionUser.key && testing) {
+            theirGuess = value;
+          }
+        })
+        myGuess = sessionUser.guess;
+        determineWinner(myGuess, theirGuess, testing);
+      }
+    })
+  }
+}
+
+function determineWinner(mine, theirs, testing) {
+  if (testing) {
+    if (mine === theirs) {
+      ++ties;
+      console.log("Tied", ties);
+    } else if ((mine - theirs + 3) % 3 == 1) {
+      ++wins;
+      console.log("Won", wins);
+    } else {
+      ++losses;
+      console.log("Lost", losses);
+    }
+  }
+  database.ref("currentPlayers").remove();
+  testing = false;
 }
 
 function confirmAction(type) {
@@ -196,4 +289,12 @@ $(document).ready(function() {
       confirmAction("nameChange");
     }
   });
+
+  $(".gameplay").on("click", ".guess", function(event) {
+    sessionUser.guess = $(this).attr("id");
+    var localPlayer = {};
+    localPlayer[sessionUser.key] = sessionUser.guess;
+    database.ref("currentPlayers").update(localPlayer);
+
+  })
 });

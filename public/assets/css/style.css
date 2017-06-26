@@ -4,11 +4,17 @@
 }
 
 .gameplay {
-	height: 400px;
+	margin-top: 30px;
+	height: 25vh;
 	border: black 2px solid;
 }
 
 .chatDisplay {
+	margin-top: 5px;
 	height: 125px;
 	overflow: scroll;
+}
+
+.controls {
+	margin-top: 25px;
 }
