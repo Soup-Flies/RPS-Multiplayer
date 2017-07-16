@@ -17,12 +17,14 @@ function Player(key) {
   this.pos;
 }
 
-/* Comments Ideas
+/*
+//TODO:
 Player Queue? DONE
 Play against computer -- solo
 buttons to choose solo play so others can play
 multiple "lobbies"
 */
+
   var database = firebase.database();
   var connectionsRef = database.ref("/connections");
   var connectedRef = database.ref(".info/connected");
@@ -34,11 +36,9 @@ multiple "lobbies"
   var myGuess;
   var theirGuess;
   var testing = true;
-  var wins = 0;
-  var losses = 0;
-  var ties = 0;
   var otherPlayer = {};
-  var nameDescriptor = ["Damp", "Buttery", "Solid", "Skilled", "Apprentice", "Holy", "Sloppy", "Snotty", "Tired", "Stanky",
+  var leaveMessage;
+  var nameDescriptor = ["Athletic", "Combustible", "Damp", "Buttery", "Solid", "Skilled", "Apprentice", "Holy", "Sloppy", "Snotty", "Tired", "Stanky",
                           "Burnt", "Big", "Small", "Average", "Fast", "Slow", "Testy", "Angry", "Weeping", "Tough", "Wimpy", "Meak", "Hungry"];
 
   var nameNouns = ["Sock", "Goldfish", "Ice Cube", "Pillow", "Cake", "Bread", "Ribbon", "Straw", "Star",
@@ -50,9 +50,11 @@ connectedRef.on("value", function(snap) {
       sessionUser = new Player(con.key);
       randomName();
       con.onDisconnect().remove();
-      database.ref("users/" + sessionUser.key).onDisconnect().remove();
       database.ref("combatants/" + sessionUser.key).onDisconnect().remove();
-
+      database.ref("users/" + sessionUser.key).onDisconnect().remove();
+      var ref = database.ref("chat");
+  } else {
+    playerLeft();
   }
 });
 
@@ -63,19 +65,28 @@ connectionsRef.on("value", function(snap) {
 //database snapshot when value changes
 database.ref().on("value", function(snapshot) {
   currentData = snapshot;
-  scoreDisplay(currentData);
   if (snapshot.child("chat").exists()) {
     playerChat = snapshot.val().chat;
+    (initialConnect == true ? playerChat.push(`${moment().format("hh:mm:ss a")} SYSTEM: User: ${sessionUser.name} has joined the room.`) : null);
+    initialConnect = false;
+    database.ref("chat").set(playerChat);
     chatDisplay();
   }
   if (snapshot.child("playerQueues").exists()) {
     queue = snapshot.val().playerQueue;
   }
   playerQueue(snapshot);
+  scoreDisplay(currentData);
 }, function(errorObject) {
   console.log("ERROR: ", errorObject.val());
 });
 
+function playerLeft() {
+  //Doesn't fire properly when user leaves game.
+  // playerChat.push(`${moment().format("hh:mm:ss a")} SYSTEM: User: ${sessionUser.name} has left the room.`);
+  // database.ref("chat").set(playerChat);
+  // chatDisplay();
+}
 
 function playerQueue() {
   queue = [];
@@ -99,9 +110,9 @@ function playerQueue() {
 function randomName() {
     var rand = Math.floor(Math.random() * nameDescriptor.length);
     var rand2 = Math.floor(Math.random() * nameNouns.length);
-    sessionUser.name = nameDescriptor[rand] + " " + nameNouns[rand2];
+    sessionUser.name = `${nameDescriptor[rand]} ${nameNouns[rand2]}`;
     $(".nameDisplay").html("Your name is: " + sessionUser.name);
-    chatDisplay();
+    document.title = `${sessionUser.name} playing Rock Paper Scissors`
 }
 
 function chatStarter() {
@@ -125,8 +136,13 @@ function nameChange(newName) {
   var temp = sessionUser.name;
   sessionUser.name = newName;
   playerChat.push(moment().format("hh:mm:ss a") + " " + "SYSTEM: User: " + temp + " has changed their name to: " + sessionUser.name);
+  database.ref("chat").set(playerChat);
   $("#nameInput").val("");
+  document.title = `${sessionUser.name} playing Rock Paper Scissors`
   chatDisplay();
+  database.ref(`combatants/${sessionUser.key}`).set({
+    name: sessionUser.name
+  });
 }
 
 function chatUpdate() {
@@ -139,26 +155,22 @@ function chatUpdate() {
   $(".chatInput").val("");
 };
 
-function buildScoreTable(player) {
+function buildScoreTable(player, user) {
   if (player) {
     var $newDiv = $("<div>");
-    $newDiv.append(sessionUser.name + "<br>");
-    $newDiv.append("Wins: " + sessionUser.wins + "<br>");
-    $newDiv.append("Losses: " + sessionUser.losses + "<br>");
-    $newDiv.append("Ties: " + sessionUser.ties);
-    console.log(sessionUser, "player");
-    console.log($newDiv);
+    $newDiv.append(user.name + "<br>");
+    $newDiv.append("Wins: " + user.wins + "<br>");
+    $newDiv.append("Losses: " + user.losses + "<br>");
+    $newDiv.append("Ties: " + user.ties);
     return $newDiv;
   } else {
   var $newDiv = $("<div>");
-  $newDiv.append(otherPlayer.name + "<br>");
-  $newDiv.append("Wins: " + otherPlayer.wins + "<br>");
-  $newDiv.append("Losses: " + otherPlayer.losses + "<br>");
-  $newDiv.append("Ties: " + otherPlayer.ties);
-  console.log(otherPlayer , "player");
-  console.log($newDiv);
+  $newDiv.append(user.name + "<br>");
+  $newDiv.append("Wins: " + user.wins + "<br>");
+  $newDiv.append("Losses: " + user.losses + "<br>");
+  $newDiv.append("Ties: " + user.ties);
   return $newDiv;
-}
+  }
 }
 
 function scoreDisplay(current) {
@@ -170,19 +182,20 @@ function scoreDisplay(current) {
     var playerTwo = {};
     playerTwo[sessionUser.key] = sessionUser;
     database.ref("combatants").update(playerTwo);
+  } else {
+    // TODO: table updates for non playing users as well as display "combat"
   }
 }
 
     database.ref("combatants").on("value", function(snapshot) {
       $.each(snapshot.val(), function(index, value) {
-        if (value.pos != sessionUser.pos) {
-          otherPlayer = value;
-        } else if (value.pos == 1 && sessionUser.pos == 1) {
-          $(".firstPlayer").html(buildScoreTable(true));
-          $(".secondPlayer").html(buildScoreTable(false));
-        } else if (value.pos && sessionUser.pos == 2)
-          $(".secondPlayer").html(buildScoreTable(true));
-          $(".firstPlayer").html(buildScoreTable(false));
+        console.log(value.pos, value.name, 'player position');
+        if (value.pos == 1) {
+          $(".firstPlayer").html(buildScoreTable(true, value));
+          // $(".secondPlayer").html(buildScoreTable(false, value));
+        } else if (value.pos == 2)
+          $(".secondPlayer").html(buildScoreTable(true, value));
+          // $(".firstPlayer").html(buildScoreTable(false, value));
         })
       })
 
@@ -221,19 +234,24 @@ function startMatch(playing) {
 }
 
 function determineWinner(mine, theirs, testing) {
-  if (testing) {
+  if (testing && mine != null) {
     if (mine === theirs) {
-      ++ties;
-      console.log("Tied", ties);
+      mine = null
+      database.ref("currentPlayers/" + sessionUser.key).remove();
+      ++sessionUser.ties;
+      database.ref("combatants/" + sessionUser.key).set(sessionUser.ties);
     } else if ((mine - theirs + 3) % 3 == 1) {
-      ++wins;
-      console.log("Won", wins);
+      mine = null
+      database.ref("currentPlayers/" + sessionUser.key).remove();
+      ++sessionUser.wins;
+      database.ref("combatants/" + sessionUser.key).set(sessionUser.wins);
     } else {
-      ++losses;
-      console.log("Lost", losses);
+      mine = null
+      database.ref("currentPlayers/" + sessionUser.key).remove();
+      ++sessionUser.losses;
+      database.ref("combatants/" + sessionUser.key).set(sessionUser.losses);
     }
   }
-  database.ref("currentPlayers").remove();
   testing = false;
 }
 
@@ -295,6 +313,5 @@ $(document).ready(function() {
     var localPlayer = {};
     localPlayer[sessionUser.key] = sessionUser.guess;
     database.ref("currentPlayers").update(localPlayer);
-
   })
 });
